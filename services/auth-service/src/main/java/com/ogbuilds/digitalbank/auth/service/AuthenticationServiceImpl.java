@@ -2,6 +2,7 @@ package com.ogbuilds.digitalbank.auth.service;
 
 import com.ogbuilds.digitalbank.auth.dto.LoginRequest;
 import com.ogbuilds.digitalbank.auth.dto.LoginResponse;
+import com.ogbuilds.digitalbank.auth.entity.AuthUser;
 import com.ogbuilds.digitalbank.auth.entity.RefreshToken;
 import com.ogbuilds.digitalbank.auth.repository.RefreshTokenRepository;
 import com.ogbuilds.digitalbank.auth.security.CustomUserDetails;
@@ -37,19 +38,29 @@ public class AuthenticationServiceImpl
         UserDetails user = (UserDetails) authentication.getPrincipal();
 
         String accessToken = jwtService.generateAccessToken(user);
-        String refreshTokenValue = jwtService.generateRefreshToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
 
-        RefreshToken refreshToken = RefreshToken.builder()
-                .token(refreshTokenValue)
-                .user(((CustomUserDetails) user).getUser())
-                .expiryDate(LocalDateTime.now().plusDays(7))
-                .build();
+        AuthUser loggedInUser = ((CustomUserDetails) user).getUser();
 
-        refreshTokenRepository.save(refreshToken);
+        RefreshToken refreshTokenEntity =
+                refreshTokenRepository
+                        .findByUser(loggedInUser)
+                        .orElse(
+                                RefreshToken.builder()
+                                        .user(loggedInUser)
+                                        .build()
+                        );
+
+        refreshTokenEntity.setToken(refreshToken);
+        refreshTokenEntity.setExpiryDate(
+                LocalDateTime.now().plusDays(7)
+        );
+
+        refreshTokenRepository.save(refreshTokenEntity);
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshTokenValue)
+                .refreshToken(refreshToken)
                 .build();
 
     }

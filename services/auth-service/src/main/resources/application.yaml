@@ -5,6 +5,15 @@ spring:
   application:
     name: auth-service
 
+  spring:
+    application:
+      name: auth-service
+
+  eureka:
+    client:
+      service-url:
+        defaultZone: http://localhost:8761/eureka
+
   datasource:
     url: jdbc:mysql://localhost:3312/auth_db
     username: root
@@ -27,6 +36,6 @@ management:
         include: health,info
 
 jwt:
-  secret: thisismydecretcodethatispublicunfortunately123123123
+  secret: thisismydecretcodet   hatispublicunfortunately123123123
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
