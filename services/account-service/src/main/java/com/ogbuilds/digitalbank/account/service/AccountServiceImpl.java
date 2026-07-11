@@ -1,19 +1,26 @@
 package com.ogbuilds.digitalbank.account.service;
 
+import com.ogbuilds.digitalbank.account.client.CustomerClient;
 import com.ogbuilds.digitalbank.account.dto.request.CreateAccountRequest;
 import com.ogbuilds.digitalbank.account.dto.response.AccountResponse;
 import com.ogbuilds.digitalbank.account.entity.Account;
 import com.ogbuilds.digitalbank.account.enums.AccountStatus;
 import com.ogbuilds.digitalbank.account.exception.AccountNotFoundException;
+import com.ogbuilds.digitalbank.account.exception.InsufficientBalanceException;
 import com.ogbuilds.digitalbank.account.repository.AccountRepository;
 import com.ogbuilds.digitalbank.account.service.AccountService;
 import com.ogbuilds.digitalbank.account.util.AccountNumberGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.ogbuilds.digitalbank.account.exception.CustomerNotFoundException;
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountServiceImpl
@@ -21,12 +28,35 @@ public class AccountServiceImpl
 
     private final AccountRepository accountRepository;
     private final AccountNumberGenerator accountNumberGenerator;
+    private final CustomerClient customerClient;
 
     @Override
     public AccountResponse createAccount(
             CreateAccountRequest request) {
 
+        log.info(
+                "Creating account for customer {}",
+                request.getCustomerId()
+        );
+
         String accountNumber;
+        try {
+
+            customerClient.getCustomer(
+                    request.getCustomerId()
+            );
+
+        } catch (FeignException.NotFound ex) {
+
+            throw new CustomerNotFoundException(
+                    "Customer not found."
+            );
+        }
+
+        log.info(
+                "Customer {} verified.",
+                request.getCustomerId()
+        );
 
         do {
 
@@ -58,7 +88,17 @@ public class AccountServiceImpl
 
                 .build();
 
+        log.info(
+                "Generated account number {}",
+                accountNumber
+        );
+
         account = accountRepository.save(account);
+
+        log.info(
+                "Account {} created successfully.",
+                account.getAccountNumber()
+        );
 
         return map(account);
     }
@@ -171,6 +211,108 @@ public class AccountServiceImpl
         account.setUpdatedAt(LocalDateTime.now());
 
         accountRepository.save(account);
+
+    }
+
+    @Override
+    public AccountResponse deposit(
+            String accountNumber,
+            BigDecimal amount) {
+
+        Account account =
+                accountRepository.findByAccountNumber(accountNumber)
+
+                        .orElseThrow(() ->
+                                new AccountNotFoundException(
+                                        "Account not found."
+                                ));
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Amount must be greater than zero."
+            );
+
+        }
+
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+
+            throw new IllegalStateException(
+                    "Account is not active."
+            );
+
+        }
+
+        account.setBalance(
+                account.getBalance().add(amount)
+        );
+
+        account.setUpdatedAt(LocalDateTime.now());
+
+        account = accountRepository.save(account);
+
+        log.info(
+                "Deposited {} into account {}",
+                amount,
+                accountNumber
+        );
+
+        return map(account);
+
+    }
+
+    @Override
+    public AccountResponse withdraw(
+            String accountNumber,
+            BigDecimal amount) {
+
+        Account account =
+                accountRepository.findByAccountNumber(accountNumber)
+
+                        .orElseThrow(() ->
+                                new AccountNotFoundException(
+                                        "Account not found."
+                                ));
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Amount must be greater than zero."
+            );
+
+        }
+
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+
+            throw new IllegalStateException(
+                    "Account is not active."
+            );
+
+        }
+
+        if (account.getBalance().compareTo(amount) < 0) {
+
+            throw new InsufficientBalanceException(
+                    "Insufficient account balance."
+            );
+
+        }
+
+        account.setBalance(
+                account.getBalance().subtract(amount)
+        );
+
+        account.setUpdatedAt(LocalDateTime.now());
+
+        account = accountRepository.save(account);
+
+        log.info(
+                "Withdrawn {} from account {}",
+                amount,
+                accountNumber
+        );
+
+        return map(account);
 
     }
 

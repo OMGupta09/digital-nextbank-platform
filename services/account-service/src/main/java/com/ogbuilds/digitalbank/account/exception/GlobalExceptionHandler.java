@@ -39,4 +39,30 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCustomerNotFound(
+            CustomerNotFoundException ex) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build());
+
+    }
+
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInsufficientBalance(
+            InsufficientBalanceException ex) {
+
+        return ResponseEntity.badRequest()
+                .body(
+                        ApiResponse.<Void>builder()
+                                .success(false)
+                                .message(ex.getMessage())
+                                .build()
+                );
+
+    }
+
 }

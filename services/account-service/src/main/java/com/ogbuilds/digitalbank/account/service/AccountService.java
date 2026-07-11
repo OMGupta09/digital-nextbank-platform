@@ -4,6 +4,7 @@ import com.ogbuilds.digitalbank.account.dto.request.CreateAccountRequest;
 import com.ogbuilds.digitalbank.account.dto.response.AccountResponse;
 import com.ogbuilds.digitalbank.account.enums.AccountStatus;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface AccountService {
@@ -31,6 +32,16 @@ public interface AccountService {
 
     void closeAccount(
             Long id
+    );
+
+    AccountResponse deposit(
+            String accountNumber,
+            BigDecimal amount
+    );
+
+    AccountResponse withdraw(
+            String accountNumber,
+            BigDecimal amount
     );
 
 }

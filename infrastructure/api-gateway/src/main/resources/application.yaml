@@ -1,6 +1,9 @@
 server:
   port: 8080
 
+jwt:
+  secret: thisismydecretcodethatispublicunfortunately123123123
+
 spring:
   application:
     name: api-gateway
@@ -9,8 +12,7 @@ spring:
     gateway:
       discovery:
         locator:
-          enabled: true
-          lower-case-service-id: true
+          enabled: false
 
       routes:
         - id: auth-service
@@ -28,6 +30,16 @@ spring:
           predicates:
             - Path=/accounts/**
 
+        - id: transaction-service
+          uri: lb://TRANSACTION-SERVICE
+          predicates:
+            - Path=/transactions/**
+
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/notifications/**
+
 eureka:
   client:
     service-url:
@@ -37,8 +49,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info,gateway
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
