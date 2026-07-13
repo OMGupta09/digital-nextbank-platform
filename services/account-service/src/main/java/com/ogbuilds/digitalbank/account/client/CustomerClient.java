@@ -14,4 +14,9 @@ public interface CustomerClient {
             @PathVariable Long id
     );
 
+    @GetMapping("/customers/auth/{authUserId}")
+    ApiResponse<CustomerResponse> getCustomerByAuthUserId(
+            @PathVariable Long authUserId
+    );
+
 }

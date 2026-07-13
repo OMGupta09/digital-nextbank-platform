@@ -39,10 +39,11 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AccountResponse>> getById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long authUserId) {
 
         AccountResponse response =
-                accountService.getAccountById(id);
+                accountService.getAccountById(id, authUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -55,10 +56,11 @@ public class AccountController {
 
     @GetMapping("/number/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountResponse>> getByNumber(
-            @PathVariable String accountNumber) {
+            @PathVariable String accountNumber,
+            @RequestHeader("X-User-Id") Long authUserId) {
 
         AccountResponse response =
-                accountService.getAccountByNumber(accountNumber);
+                accountService.getAccountByNumber(accountNumber, authUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -71,10 +73,11 @@ public class AccountController {
 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<ApiResponse<List<AccountResponse>>> getByCustomer(
-            @PathVariable Long customerId) {
+            @PathVariable Long customerId,
+            @RequestHeader("X-User-Id") Long authUserId) {
 
         List<AccountResponse> response =
-                accountService.getAccountsByCustomer(customerId);
+                accountService.getAccountsByCustomer(customerId, authUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.<List<AccountResponse>>builder()
@@ -88,10 +91,11 @@ public class AccountController {
     @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<AccountResponse>> updateStatus(
             @PathVariable Long id,
-            @RequestParam AccountStatus status) {
+            @RequestParam AccountStatus status,
+            @RequestHeader("X-User-Id") Long authUserId) {
 
         AccountResponse response =
-                accountService.updateAccountStatus(id, status);
+                accountService.updateAccountStatus(id, status, authUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -104,9 +108,10 @@ public class AccountController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> closeAccount(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long authUserId) {
 
-        accountService.closeAccount(id);
+        accountService.closeAccount(id, authUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
@@ -119,12 +124,15 @@ public class AccountController {
     @PutMapping("/{accountNumber}/deposit")
     public ResponseEntity<ApiResponse<AccountResponse>> deposit(
             @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount) {
+            @RequestParam BigDecimal amount,
+            @RequestHeader("X-User-Id") Long authUserId
+    ) {
 
         AccountResponse response =
                 accountService.deposit(
                         accountNumber,
-                        amount
+                        amount,
+                        authUserId
                 );
 
         return ResponseEntity.ok(
@@ -140,12 +148,14 @@ public class AccountController {
     @PutMapping("/{accountNumber}/withdraw")
     public ResponseEntity<ApiResponse<AccountResponse>> withdraw(
             @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount) {
+            @RequestParam BigDecimal amount,
+            @RequestHeader("X-User-Id") Long authUserId) {
 
         AccountResponse response =
                 accountService.withdraw(
                         accountNumber,
-                        amount
+                        amount,
+                        authUserId
                 );
 
         return ResponseEntity.ok(

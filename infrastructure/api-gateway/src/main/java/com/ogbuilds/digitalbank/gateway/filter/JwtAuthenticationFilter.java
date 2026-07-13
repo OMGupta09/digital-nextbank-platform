@@ -2,30 +2,34 @@ package com.ogbuilds.digitalbank.gateway.filter;
 
 import com.ogbuilds.digitalbank.gateway.security.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter implements GlobalFilter {
+public class JwtAuthenticationFilter implements WebFilter {
 
     private final JwtService jwtService;
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
 
         String path = exchange.getRequest().getURI().getPath();
 
-        if (path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/actuator")) {
-
+        if (isPublicPath(path)) {
             return chain.filter(exchange);
-
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
@@ -35,7 +39,6 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
 
             return exchange.getResponse().setComplete();
-
         }
 
         String token = authHeader.substring(7);
@@ -45,20 +48,24 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
 
             return exchange.getResponse().setComplete();
-
         }
 
-        ServerHttpRequest request = exchange.getRequest().mutate()
+        Long userId = jwtService.extractUserId(token);
+        String email = jwtService.extractUsername(token);
+        String role = jwtService.extractRole(token);
 
-                .header("X-User-Id", String.valueOf(jwtService.extractUserId(token)))
+        ServerHttpRequest request = exchange.getRequest().mutate().header("X-User-Id", String.valueOf(userId)).header("X-User-Email", email).header("X-User-Role", role).build();
 
-                .header("X-User-Email", jwtService.extractUsername(token))
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, null, List.of(new SimpleGrantedAuthority(role)));
 
-                .header("X-User-Role", jwtService.extractRole(token))
+        SecurityContextImpl context = new SecurityContextImpl(authentication);
 
-                .build();
+        return chain.filter(exchange.mutate().request(request).build()).contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
+    }
 
-        return chain.filter(exchange.mutate().request(request).build());
+    private boolean isPublicPath(String path) {
+
+        return path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/auth/refresh") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path.startsWith("/actuator");
 
     }
 

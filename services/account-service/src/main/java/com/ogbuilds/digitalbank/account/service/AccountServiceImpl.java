@@ -5,16 +5,16 @@ import com.ogbuilds.digitalbank.account.dto.request.CreateAccountRequest;
 import com.ogbuilds.digitalbank.account.dto.response.AccountResponse;
 import com.ogbuilds.digitalbank.account.entity.Account;
 import com.ogbuilds.digitalbank.account.enums.AccountStatus;
+import com.ogbuilds.digitalbank.account.exception.AccessDeniedException;
 import com.ogbuilds.digitalbank.account.exception.AccountNotFoundException;
+import com.ogbuilds.digitalbank.account.exception.CustomerNotFoundException;
 import com.ogbuilds.digitalbank.account.exception.InsufficientBalanceException;
 import com.ogbuilds.digitalbank.account.repository.AccountRepository;
-import com.ogbuilds.digitalbank.account.service.AccountService;
 import com.ogbuilds.digitalbank.account.util.AccountNumberGenerator;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import com.ogbuilds.digitalbank.account.exception.CustomerNotFoundException;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -126,7 +126,8 @@ public class AccountServiceImpl
     }
 
     @Override
-    public AccountResponse getAccountById(Long id) {
+    public AccountResponse getAccountById(Long id,
+                                          Long authUserId) {
 
         Account account =
                 accountRepository.findById(id)
@@ -136,13 +137,16 @@ public class AccountServiceImpl
                                         "Account not found."
                                 ));
 
+        verifyOwnership(account, authUserId);
+
         return map(account);
 
     }
 
     @Override
     public AccountResponse getAccountByNumber(
-            String accountNumber) {
+            String accountNumber,
+            Long authUserId) {
 
         Account account =
                 accountRepository.findByAccountNumber(accountNumber)
@@ -152,22 +156,31 @@ public class AccountServiceImpl
                                         "Account not found."
                                 ));
 
+        verifyOwnership(account, authUserId);
+
         return map(account);
 
     }
 
     @Override
     public List<AccountResponse> getAccountsByCustomer(
-            Long customerId) {
+            Long customerId,
+            Long authUserId) {
 
+        Long authenticatedCustomerId = customerClient
+                .getCustomerByAuthUserId(authUserId)
+                .getData()
+                .getId();
+
+        if (!authenticatedCustomerId.equals(customerId)) {
+            throw new AccessDeniedException(
+                    "You are not authorized to access these accounts."
+            );
+        }
         return accountRepository
-
                 .findByCustomerId(customerId)
-
                 .stream()
-
                 .map(this::map)
-
                 .toList();
 
     }
@@ -175,7 +188,8 @@ public class AccountServiceImpl
     @Override
     public AccountResponse updateAccountStatus(
             Long id,
-            AccountStatus status) {
+            AccountStatus status,
+            Long authUserId) {
 
         Account account =
                 accountRepository.findById(id)
@@ -184,6 +198,8 @@ public class AccountServiceImpl
                                 new AccountNotFoundException(
                                         "Account not found."
                                 ));
+
+        verifyOwnership(account, authUserId);
 
         account.setStatus(status);
 
@@ -196,7 +212,8 @@ public class AccountServiceImpl
     }
 
     @Override
-    public void closeAccount(Long id) {
+    public void closeAccount(Long id,
+                             Long authUserId) {
 
         Account account =
                 accountRepository.findById(id)
@@ -205,6 +222,8 @@ public class AccountServiceImpl
                                 new AccountNotFoundException(
                                         "Account not found."
                                 ));
+
+        verifyOwnership(account, authUserId);
 
         account.setStatus(AccountStatus.CLOSED);
 
@@ -217,7 +236,8 @@ public class AccountServiceImpl
     @Override
     public AccountResponse deposit(
             String accountNumber,
-            BigDecimal amount) {
+            BigDecimal amount,
+            Long authUserId) {
 
         Account account =
                 accountRepository.findByAccountNumber(accountNumber)
@@ -226,6 +246,8 @@ public class AccountServiceImpl
                                 new AccountNotFoundException(
                                         "Account not found."
                                 ));
+
+        verifyOwnership(account, authUserId);
 
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
 
@@ -264,7 +286,8 @@ public class AccountServiceImpl
     @Override
     public AccountResponse withdraw(
             String accountNumber,
-            BigDecimal amount) {
+            BigDecimal amount,
+            Long authUserId) {
 
         Account account =
                 accountRepository.findByAccountNumber(accountNumber)
@@ -273,6 +296,8 @@ public class AccountServiceImpl
                                 new AccountNotFoundException(
                                         "Account not found."
                                 ));
+
+        verifyOwnership(account, authUserId);
 
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
 
@@ -313,6 +338,23 @@ public class AccountServiceImpl
         );
 
         return map(account);
+
+    }
+
+    private void verifyOwnership(
+            Account account,
+            Long authUserId) {
+
+        Long customerId = customerClient
+                .getCustomerByAuthUserId(authUserId)
+                .getData()
+                .getId();
+
+        if (!account.getCustomerId().equals(customerId)) {
+            throw new AccessDeniedException(
+                    "You do not own this account."
+            );
+        }
 
     }
 

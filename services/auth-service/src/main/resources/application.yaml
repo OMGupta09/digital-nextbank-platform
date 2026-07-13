@@ -36,6 +36,6 @@ management:
         include: health,info
 
 jwt:
-  secret: thisismydecretcodet   hatispublicunfortunately123123123
+  secret: thisismydecretcodethatispublicunfortunately123123123
   access-token-expiration: 900000
   refresh-token-expiration: 604800000

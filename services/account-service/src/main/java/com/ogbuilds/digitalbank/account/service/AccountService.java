@@ -14,34 +14,41 @@ public interface AccountService {
     );
 
     AccountResponse getAccountById(
-            Long id
+            Long id,
+            Long authUserId
     );
 
     AccountResponse getAccountByNumber(
-            String accountNumber
+            String accountNumber,
+            Long authUserId
     );
 
     List<AccountResponse> getAccountsByCustomer(
-            Long customerId
+            Long customerId,
+            Long authUserId
     );
 
     AccountResponse updateAccountStatus(
             Long id,
-            AccountStatus status
+            AccountStatus status,
+            Long authUserId
     );
 
     void closeAccount(
-            Long id
+            Long id,
+            Long authUserId
     );
 
     AccountResponse deposit(
             String accountNumber,
-            BigDecimal amount
+            BigDecimal amount,
+            Long authUserId
     );
 
     AccountResponse withdraw(
             String accountNumber,
-            BigDecimal amount
+            BigDecimal amount,
+            Long authUserId
     );
 
 }

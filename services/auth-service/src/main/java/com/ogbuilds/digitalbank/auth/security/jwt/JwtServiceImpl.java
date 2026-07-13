@@ -1,5 +1,7 @@
 package com.ogbuilds.digitalbank.auth.security.jwt;
 
+import com.ogbuilds.digitalbank.auth.entity.AuthUser;
+import com.ogbuilds.digitalbank.auth.security.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -25,48 +27,91 @@ public class JwtServiceImpl implements JwtService {
     private long refreshExpiration;
 
     private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-    }
 
-    @Override
-    public String generateAccessToken(UserDetails userDetails) {
-
-        return buildToken(userDetails, accessExpiration);
+        return Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
 
     }
 
     @Override
-    public String generateRefreshToken(UserDetails userDetails) {
+    public String generateAccessToken(
+            UserDetails userDetails) {
 
-        return buildToken(userDetails, refreshExpiration);
+        return buildToken(
+                userDetails,
+                accessExpiration
+        );
 
     }
 
-    private String buildToken(UserDetails userDetails, long expiration) {
+    @Override
+    public String generateRefreshToken(
+            UserDetails userDetails) {
+
+        return buildToken(
+                userDetails,
+                refreshExpiration
+        );
+
+    }
+
+    private String buildToken(
+            UserDetails userDetails,
+            long expiration) {
+
+        CustomUserDetails customUserDetails =
+                (CustomUserDetails) userDetails;
+
+        AuthUser user =
+                customUserDetails.getUser();
 
         return Jwts.builder()
-                .subject(userDetails.getUsername())
+
+                .subject(user.getEmail())
+
+                .claim("userId", user.getId())
+
+                .claim("role", user.getRole().name())
+
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+
+                .expiration(
+                        new Date(
+                                System.currentTimeMillis()
+                                        + expiration
+                        )
+                )
+
                 .signWith(getKey())
+
                 .compact();
 
     }
 
     @Override
-    public String extractUsername(String token) {
+    public String extractUsername(
+            String token) {
 
-        return extractClaim(token, Claims::getSubject);
+        return extractClaim(
+                token,
+                Claims::getSubject
+        );
 
     }
 
-    public <T> T extractClaim(String token,
-                              Function<Claims, T> resolver) {
+    public <T> T extractClaim(
+            String token,
+            Function<Claims, T> resolver) {
 
         Claims claims = Jwts.parser()
+
                 .verifyWith(getKey())
+
                 .build()
+
                 .parseSignedClaims(token)
+
                 .getPayload();
 
         return resolver.apply(claims);
@@ -74,21 +119,26 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public boolean isTokenValid(String token,
-                                UserDetails userDetails) {
+    public boolean isTokenValid(
+            String token,
+            UserDetails userDetails) {
 
-        String username = extractUsername(token);
+        String username =
+                extractUsername(token);
 
-        return username.equals(userDetails.getUsername())
-                && !isExpired(token);
+        return username.equals(
+                userDetails.getUsername()
+        ) && !isExpired(token);
 
     }
 
-    private boolean isExpired(String token) {
+    private boolean isExpired(
+            String token) {
 
-        return extractClaim(token,
-                Claims::getExpiration)
-                .before(new Date());
+        return extractClaim(
+                token,
+                Claims::getExpiration
+        ).before(new Date());
 
     }
 

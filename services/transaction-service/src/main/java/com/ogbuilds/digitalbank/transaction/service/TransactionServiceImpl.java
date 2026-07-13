@@ -19,6 +19,10 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.cache.annotation.EnableCaching;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,6 +44,10 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @CacheEvict(
+            cacheNames = "transactionHistory",
+            key = "#request.accountNumber"
+    )
     @Transactional
     public TransactionResponse deposit(DepositRequest request) {
 
@@ -74,6 +82,10 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @CacheEvict(
+            cacheNames = "transactionHistory",
+            key = "#request.accountNumber"
+    )
     @Transactional
     public TransactionResponse withdraw(WithdrawRequest request) {
 
@@ -108,6 +120,21 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Caching(
+            evict = {
+
+                    @CacheEvict(
+                            cacheNames = "transactionHistory",
+                            key = "#request.fromAccountNumber"
+                    ),
+
+                    @CacheEvict(
+                            cacheNames = "transactionHistory",
+                            key = "#request.toAccountNumber"
+                    )
+
+            }
+    )
     @Transactional
     public TransactionResponse transfer(TransferRequest request) {
 
@@ -179,6 +206,10 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "transactions",
+            key = "#referenceId"
+    )
     public TransactionResponse getByReferenceId(String referenceId) {
 
         Transaction transaction = transactionRepository.findByReferenceId(referenceId).orElseThrow(() -> new TransactionNotFoundException("Transaction not found."));
