@@ -103,4 +103,20 @@ public class TransactionController {
 
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getMyTransactions(
+            @RequestHeader("X-User-Id") Long authUserId) {
+
+        List<TransactionResponse> response =
+                transactionService.getMyTransactions(authUserId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<TransactionResponse>>builder()
+                        .success(true)
+                        .message("Transactions fetched successfully.")
+                        .data(response)
+                        .build()
+        );
+    }
+
 }

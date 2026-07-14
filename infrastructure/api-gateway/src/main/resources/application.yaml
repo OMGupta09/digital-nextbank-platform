@@ -40,6 +40,11 @@ spring:
           predicates:
             - Path=/notifications/**
 
+        - id: ai-service
+          uri: lb://AI-SERVICE
+          predicates:
+              - Path=/ai/**
+
 eureka:
   client:
     service-url:

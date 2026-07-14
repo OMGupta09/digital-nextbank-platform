@@ -14,40 +14,38 @@ public interface AccountService {
     );
 
     AccountResponse getAccountById(
-            Long id,
-            Long authUserId
+            Long id
     );
 
     AccountResponse getAccountByNumber(
-            String accountNumber,
-            Long authUserId
+            String accountNumber
     );
 
     List<AccountResponse> getAccountsByCustomer(
-            Long customerId,
-            Long authUserId
+            Long customerId
     );
 
     AccountResponse updateAccountStatus(
             Long id,
-            AccountStatus status,
-            Long authUserId
+            AccountStatus status
     );
 
     void closeAccount(
-            Long id,
-            Long authUserId
+            Long id
     );
 
     AccountResponse deposit(
             String accountNumber,
-            BigDecimal amount,
-            Long authUserId
+            BigDecimal amount
     );
 
     AccountResponse withdraw(
             String accountNumber,
-            BigDecimal amount,
+            BigDecimal amount
+    );
+
+    // External endpoint (/accounts/me)
+    List<AccountResponse> getMyAccounts(
             Long authUserId
     );
 

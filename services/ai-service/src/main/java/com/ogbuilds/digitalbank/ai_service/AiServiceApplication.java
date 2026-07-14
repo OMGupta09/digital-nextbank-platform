@@ -1,4 +1,4 @@
-package com.ogbuilds.digitalbank.auth;
+package com.ogbuilds.digitalbank.ai_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,10 +6,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
 @EnableFeignClients
-public class AuthServiceApplication {
+public class AiServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(AuthServiceApplication.class, args);
+		SpringApplication.run(AiServiceApplication.class, args);
 	}
 
 }

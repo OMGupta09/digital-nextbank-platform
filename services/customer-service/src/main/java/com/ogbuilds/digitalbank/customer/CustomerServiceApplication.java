@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class CustomerSericeApplication {
+public class CustomerServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(CustomerSericeApplication.class, args);
+		SpringApplication.run(CustomerServiceApplication.class, args);
 	}
 
 }

@@ -1,6 +1,8 @@
 package com.ogbuilds.digitalbank.transaction.service;
 
 import com.ogbuilds.digitalbank.transaction.client.AccountClient;
+import com.ogbuilds.digitalbank.transaction.client.CustomerClient;
+import com.ogbuilds.digitalbank.transaction.dto.client.AccountResponse;
 import com.ogbuilds.digitalbank.transaction.dto.event.TransactionCompletedEvent;
 import com.ogbuilds.digitalbank.transaction.dto.event.TransactionFailedEvent;
 import com.ogbuilds.digitalbank.transaction.dto.request.DepositRequest;
@@ -18,11 +20,10 @@ import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +37,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountClient accountClient;
     private final TransactionEventProducer transactionEventProducer;
+    private final CustomerClient customerClient;
 
     private TransactionResponse map(Transaction transaction) {
 
@@ -44,10 +46,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    @CacheEvict(
-            cacheNames = "transactionHistory",
-            key = "#request.accountNumber"
-    )
+    @CacheEvict(cacheNames = "transactionHistory", key = "#request.accountNumber")
     @Transactional
     public TransactionResponse deposit(DepositRequest request) {
 
@@ -82,10 +81,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    @CacheEvict(
-            cacheNames = "transactionHistory",
-            key = "#request.accountNumber"
-    )
+    @CacheEvict(cacheNames = "transactionHistory", key = "#request.accountNumber")
     @Transactional
     public TransactionResponse withdraw(WithdrawRequest request) {
 
@@ -120,21 +116,13 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    @Caching(
-            evict = {
+    @Caching(evict = {
 
-                    @CacheEvict(
-                            cacheNames = "transactionHistory",
-                            key = "#request.fromAccountNumber"
-                    ),
+            @CacheEvict(cacheNames = "transactionHistory", key = "#request.fromAccountNumber"),
 
-                    @CacheEvict(
-                            cacheNames = "transactionHistory",
-                            key = "#request.toAccountNumber"
-                    )
+            @CacheEvict(cacheNames = "transactionHistory", key = "#request.toAccountNumber")
 
-            }
-    )
+    })
     @Transactional
     public TransactionResponse transfer(TransferRequest request) {
 
@@ -160,9 +148,7 @@ public class TransactionServiceImpl implements TransactionService {
 
             transaction = transactionRepository.save(transaction);
 
-            transactionEventProducer.publishCompleted(
-                    buildCompletedEvent(transaction)
-            );
+            transactionEventProducer.publishCompleted(buildCompletedEvent(transaction));
 
             log.info("Transfer completed successfully. Reference ID: {}", transaction.getReferenceId());
 
@@ -192,12 +178,7 @@ public class TransactionServiceImpl implements TransactionService {
 
             transaction = transactionRepository.save(transaction);
 
-            transactionEventProducer.publishFailed(
-                    buildFailedEvent(
-                            transaction,
-                            ex.getMessage()
-                    )
-            );
+            transactionEventProducer.publishFailed(buildFailedEvent(transaction, ex.getMessage()));
 
             throw new TransferFailedException("Transfer failed. Funds have been returned to the source account");
 
@@ -206,10 +187,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    @Cacheable(
-            cacheNames = "transactions",
-            key = "#referenceId"
-    )
+    @Cacheable(cacheNames = "transactions", key = "#referenceId")
     public TransactionResponse getByReferenceId(String referenceId) {
 
         Transaction transaction = transactionRepository.findByReferenceId(referenceId).orElseThrow(() -> new TransactionNotFoundException("Transaction not found."));
@@ -263,33 +241,48 @@ public class TransactionServiceImpl implements TransactionService {
 
     }
 
-    private TransactionCompletedEvent buildCompletedEvent(
-            Transaction transaction) {
+    private TransactionCompletedEvent buildCompletedEvent(Transaction transaction) {
 
-        return TransactionCompletedEvent.builder()
-                .referenceId(transaction.getReferenceId())
-                .fromAccountNumber(transaction.getFromAccountNumber())
-                .toAccountNumber(transaction.getToAccountNumber())
-                .amount(transaction.getAmount())
-                .transactionType(transaction.getTransactionType().name())
-                .createdAt(transaction.getCreatedAt())
-                .build();
+        return TransactionCompletedEvent.builder().referenceId(transaction.getReferenceId()).fromAccountNumber(transaction.getFromAccountNumber()).toAccountNumber(transaction.getToAccountNumber()).amount(transaction.getAmount()).transactionType(transaction.getTransactionType().name()).createdAt(transaction.getCreatedAt()).build();
 
     }
 
-    private TransactionFailedEvent buildFailedEvent(
-            Transaction transaction,
-            String reason) {
+    private TransactionFailedEvent buildFailedEvent(Transaction transaction, String reason) {
 
-        return TransactionFailedEvent.builder()
-                .referenceId(transaction.getReferenceId())
-                .fromAccountNumber(transaction.getFromAccountNumber())
-                .toAccountNumber(transaction.getToAccountNumber())
-                .amount(transaction.getAmount())
-                .transactionType(transaction.getTransactionType().name())
-                .reason(reason)
-                .createdAt(transaction.getCreatedAt())
-                .build();
+        return TransactionFailedEvent.builder().referenceId(transaction.getReferenceId()).fromAccountNumber(transaction.getFromAccountNumber()).toAccountNumber(transaction.getToAccountNumber()).amount(transaction.getAmount()).transactionType(transaction.getTransactionType().name()).reason(reason).createdAt(transaction.getCreatedAt()).build();
 
     }
+
+    @Override
+    public List<TransactionResponse> getMyTransactions(Long authUserId) {
+
+        Long customerId = customerClient.getCustomerByAuthUserId(authUserId).getData().getId();
+
+        List<AccountResponse> accounts = accountClient.getAccountsByCustomer(customerId).getData();
+
+        return accounts.stream()
+
+                .flatMap(account -> {
+
+                    List<Transaction> sent = transactionRepository.findByFromAccountNumber(account.getAccountNumber());
+
+                    List<Transaction> received = transactionRepository.findByToAccountNumber(account.getAccountNumber());
+
+                    return java.util.stream.Stream.concat(sent.stream(), received.stream());
+
+                })
+
+                .collect(java.util.stream.Collectors.toMap(Transaction::getId, t -> t, (a, b) -> a, java.util.LinkedHashMap::new))
+
+                .values()
+
+                .stream()
+
+                .sorted(java.util.Comparator.comparing(Transaction::getCreatedAt).reversed())
+
+                .map(this::map)
+
+                .toList();
+    }
+
 }

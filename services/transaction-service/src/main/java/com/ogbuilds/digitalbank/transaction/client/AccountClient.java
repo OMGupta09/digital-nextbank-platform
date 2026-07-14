@@ -6,6 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @FeignClient(name = "ACCOUNT-SERVICE")
 public interface AccountClient {
@@ -25,6 +26,11 @@ public interface AccountClient {
     ApiResponse<AccountResponse> withdraw(
             @PathVariable String accountNumber,
             @RequestParam BigDecimal amount
+    );
+
+    @GetMapping("/accounts/customer/{customerId}")
+    ApiResponse<List<AccountResponse>> getAccountsByCustomer(
+            @PathVariable Long customerId
     );
 
 }

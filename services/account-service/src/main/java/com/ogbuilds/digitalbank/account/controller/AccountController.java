@@ -39,11 +39,10 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AccountResponse>> getById(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long authUserId) {
+            @PathVariable Long id) {
 
         AccountResponse response =
-                accountService.getAccountById(id, authUserId);
+                accountService.getAccountById(id);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -56,11 +55,10 @@ public class AccountController {
 
     @GetMapping("/number/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountResponse>> getByNumber(
-            @PathVariable String accountNumber,
-            @RequestHeader("X-User-Id") Long authUserId) {
+            @PathVariable String accountNumber) {
 
         AccountResponse response =
-                accountService.getAccountByNumber(accountNumber, authUserId);
+                accountService.getAccountByNumber(accountNumber);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -73,11 +71,10 @@ public class AccountController {
 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<ApiResponse<List<AccountResponse>>> getByCustomer(
-            @PathVariable Long customerId,
-            @RequestHeader("X-User-Id") Long authUserId) {
+            @PathVariable Long customerId) {
 
         List<AccountResponse> response =
-                accountService.getAccountsByCustomer(customerId, authUserId);
+                accountService.getAccountsByCustomer(customerId);
 
         return ResponseEntity.ok(
                 ApiResponse.<List<AccountResponse>>builder()
@@ -91,11 +88,10 @@ public class AccountController {
     @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<AccountResponse>> updateStatus(
             @PathVariable Long id,
-            @RequestParam AccountStatus status,
-            @RequestHeader("X-User-Id") Long authUserId) {
+            @RequestParam AccountStatus status) {
 
         AccountResponse response =
-                accountService.updateAccountStatus(id, status, authUserId);
+                accountService.updateAccountStatus(id, status);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -108,10 +104,9 @@ public class AccountController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> closeAccount(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long authUserId) {
+            @PathVariable Long id) {
 
-        accountService.closeAccount(id, authUserId);
+        accountService.closeAccount(id);
 
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
@@ -124,15 +119,13 @@ public class AccountController {
     @PutMapping("/{accountNumber}/deposit")
     public ResponseEntity<ApiResponse<AccountResponse>> deposit(
             @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount,
-            @RequestHeader("X-User-Id") Long authUserId
+            @RequestParam BigDecimal amount
     ) {
 
         AccountResponse response =
                 accountService.deposit(
                         accountNumber,
-                        amount,
-                        authUserId
+                        amount
                 );
 
         return ResponseEntity.ok(
@@ -148,14 +141,12 @@ public class AccountController {
     @PutMapping("/{accountNumber}/withdraw")
     public ResponseEntity<ApiResponse<AccountResponse>> withdraw(
             @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount,
-            @RequestHeader("X-User-Id") Long authUserId) {
+            @RequestParam BigDecimal amount) {
 
         AccountResponse response =
                 accountService.withdraw(
                         accountNumber,
-                        amount,
-                        authUserId
+                        amount
                 );
 
         return ResponseEntity.ok(
@@ -165,6 +156,22 @@ public class AccountController {
                         .data(response)
                         .build()
         );
+
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<List<AccountResponse>>> getMyAccounts(
+            @RequestHeader("X-User-Id") Long authUserId) {
+
+        List<AccountResponse> response =
+                accountService.getMyAccounts(authUserId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<AccountResponse>>builder()
+                        .success(true)
+                        .message("Accounts fetched successfully.")
+                        .data(response)
+                        .build());
 
     }
 

@@ -29,4 +29,6 @@ public interface TransactionService {
             String accountNumber
     );
 
+    List<TransactionResponse> getMyTransactions(Long authUserId);
+
 }
