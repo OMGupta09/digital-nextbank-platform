@@ -3,6 +3,7 @@ package com.ogbuilds.digitalbank.account.controller;
 import com.ogbuilds.digitalbank.account.dto.request.CreateAccountRequest;
 import com.ogbuilds.digitalbank.account.dto.response.AccountResponse;
 import com.ogbuilds.digitalbank.account.enums.AccountStatus;
+import com.ogbuilds.digitalbank.account.security.AccessGuard;
 import com.ogbuilds.digitalbank.account.service.AccountService;
 import com.ogbuilds.digitalbank.account.util.ApiResponse;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import java.util.List;
 public class AccountController {
 
     private final AccountService accountService;
+    private final AccessGuard accessGuard;
 
     @PostMapping
     public ResponseEntity<ApiResponse<AccountResponse>> createAccount(
@@ -39,10 +41,14 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AccountResponse>> getById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long requesterAuthUserId,
+            @RequestHeader("X-User-Role") String role) {
 
         AccountResponse response =
                 accountService.getAccountById(id);
+
+        accessGuard.requireOwnedAccountOrAdmin(response.getCustomerId(), requesterAuthUserId, role);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -55,10 +61,14 @@ public class AccountController {
 
     @GetMapping("/number/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountResponse>> getByNumber(
-            @PathVariable String accountNumber) {
+            @PathVariable String accountNumber,
+            @RequestHeader("X-User-Id") Long requesterAuthUserId,
+            @RequestHeader("X-User-Role") String role) {
 
         AccountResponse response =
                 accountService.getAccountByNumber(accountNumber);
+
+        accessGuard.requireOwnedAccountOrAdmin(response.getCustomerId(), requesterAuthUserId, role);
 
         return ResponseEntity.ok(
                 ApiResponse.<AccountResponse>builder()
@@ -71,7 +81,11 @@ public class AccountController {
 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<ApiResponse<List<AccountResponse>>> getByCustomer(
-            @PathVariable Long customerId) {
+            @PathVariable Long customerId,
+            @RequestHeader("X-User-Id") Long requesterAuthUserId,
+            @RequestHeader("X-User-Role") String role) {
+
+        accessGuard.requireOwnedAccountOrAdmin(customerId, requesterAuthUserId, role);
 
         List<AccountResponse> response =
                 accountService.getAccountsByCustomer(customerId);
@@ -88,7 +102,10 @@ public class AccountController {
     @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<AccountResponse>> updateStatus(
             @PathVariable Long id,
-            @RequestParam AccountStatus status) {
+            @RequestParam AccountStatus status,
+            @RequestHeader("X-User-Role") String role) {
+
+        accessGuard.requireAdmin(role);
 
         AccountResponse response =
                 accountService.updateAccountStatus(id, status);
@@ -104,7 +121,13 @@ public class AccountController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> closeAccount(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long requesterAuthUserId,
+            @RequestHeader("X-User-Role") String role) {
+
+        AccountResponse existing = accountService.getAccountById(id);
+
+        accessGuard.requireOwnedAccountOrAdmin(existing.getCustomerId(), requesterAuthUserId, role);
 
         accountService.closeAccount(id);
 

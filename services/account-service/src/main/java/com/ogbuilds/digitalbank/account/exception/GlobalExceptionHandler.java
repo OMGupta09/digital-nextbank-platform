@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(
             AccessDeniedException ex) {
 
-        return ResponseEntity.badRequest()
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(
                         ApiResponse.<Void>builder()
                                 .success(false)

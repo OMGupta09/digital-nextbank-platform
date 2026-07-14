@@ -31,4 +31,15 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-}
+        @ExceptionHandler(ForbiddenException.class)
+        public ResponseEntity<ApiResponse<Object>> handleForbidden(
+                ForbiddenException ex) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.builder()
+                            .success(false)
+                            .message(ex.getMessage())
+                            .build());
+        }
+
+    }

@@ -2,6 +2,7 @@ package com.ogbuilds.digitalbank.customer.controller;
 
 import com.ogbuilds.digitalbank.customer.dto.CreateCustomerRequest;
 import com.ogbuilds.digitalbank.customer.dto.CustomerResponse;
+import com.ogbuilds.digitalbank.customer.security.AccessGuard;
 import com.ogbuilds.digitalbank.customer.service.CustomerService;
 import com.ogbuilds.digitalbank.customer.util.ApiResponse;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ import java.util.List;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final AccessGuard accessGuard;
 
     @PostMapping
     public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(
@@ -36,9 +38,13 @@ public class CustomerController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CustomerResponse>> getCustomer(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long requesterAuthUserId,
+            @RequestHeader("X-User-Role") String role) {
 
         CustomerResponse response = customerService.getCustomerById(id);
+
+        accessGuard.requireSelfOrAdmin(response.getAuthUserId(), requesterAuthUserId, role);
 
         return ResponseEntity.ok(
                 ApiResponse.<CustomerResponse>builder()
@@ -68,7 +74,13 @@ public class CustomerController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(
             @PathVariable Long id,
-            @Valid @RequestBody CreateCustomerRequest request) {
+            @Valid @RequestBody CreateCustomerRequest request,
+            @RequestHeader("X-User-Id") Long requesterAuthUserId,
+            @RequestHeader("X-User-Role") String role) {
+
+        CustomerResponse existing = customerService.getCustomerById(id);
+
+        accessGuard.requireSelfOrAdmin(existing.getAuthUserId(), requesterAuthUserId, role);
 
         CustomerResponse response =
                 customerService.updateCustomer(id, request);
@@ -84,7 +96,10 @@ public class CustomerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCustomer(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader("X-User-Role") String role) {
+
+        accessGuard.requireAdmin(role);
 
         customerService.deleteCustomer(id);
 
@@ -97,7 +112,10 @@ public class CustomerController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
+    public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers(
+            @RequestHeader("X-User-Role") String role) {
+
+        accessGuard.requireAdmin(role);
 
         List<CustomerResponse> response =
                 customerService.getAllCustomers();
