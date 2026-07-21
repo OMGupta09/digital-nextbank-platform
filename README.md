@@ -245,16 +245,141 @@ This project demonstrates practical implementation of:
 
 ---
 
-# 👨‍💻 Author
+# 🚀 Getting Started
 
-**Om Gupta**
+## Prerequisites
 
-Backend Developer
+Make sure you have the following installed:
 
-Tech Stack:
-
-Java • Spring Boot • Spring Cloud • Microservices • Kafka • Redis • MySQL • Spring Security • Spring AI • Docker • AWS
+- Java 21
+- Maven 3.9+
+- Docker & Docker Compose
+- Git
+- MySQL (or Docker)
+- Redis
+- Apache Kafka
 
 ---
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/OMGupta09/digital-nextbank-platform.git
+```
+
+Move into the project directory:
+
+```bash
+cd digital-nextbank-platform
+```
+
+---
+
+## Build the Project
+
+From the root directory, build all services:
+
+```bash
+mvn clean install
+```
+
+Or build individual services:
+
+```bash
+cd services/auth-service
+mvn clean install
+```
+
+---
+
+## Start Infrastructure
+
+If you're using Docker:
+
+```bash
+docker compose up -d
+```
+
+This starts:
+
+- MySQL
+- Redis
+- Kafka
+- Zookeeper
+
+---
+
+## Start the Services
+
+Start the services in the following order:
+
+1. Discovery Server
+
+```bash
+cd infrastructure/discovery-server
+mvn spring-boot:run
+```
+
+2. API Gateway
+
+```bash
+cd infrastructure/api-gateway
+mvn spring-boot:run
+```
+
+3. Auth Service
+
+```bash
+cd services/auth-service
+mvn spring-boot:run
+```
+
+4. Customer Service
+
+```bash
+cd services/customer-service
+mvn spring-boot:run
+```
+
+5. Account Service
+
+```bash
+cd services/account-service
+mvn spring-boot:run
+```
+
+6. Transaction Service
+
+```bash
+cd services/transaction-service
+mvn spring-boot:run
+```
+
+7. Notification Service
+
+```bash
+cd services/notification-service
+mvn spring-boot:run
+```
+
+8. AI Service
+
+```bash
+cd services/ai-service
+mvn spring-boot:run
+```
+
+---
+
+## Verify the Setup
+
+Open Eureka Dashboard:
+
+```
+http://localhost:8761
+```
+
+Verify that all services are registered before making API requests.
+
 
 ⭐ If you found this repository useful, consider giving it a star.
